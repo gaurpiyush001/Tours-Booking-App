@@ -35,7 +35,8 @@ const userSchema = new mongoose.Schema({
       },
       message: 'Passwords are not the same' // error message
     }
-  }
+  },
+  passwordChangedAt: Date
 });
 
 // For doing Password Encryption Password, we will use pre save hook(), i.e document middleware
@@ -62,6 +63,22 @@ userSchema.methods.correctPassword = async function(
   //this.password is not available in the output, so we pass candidatePassword as a parameter in function
   //just returns true or false
   return await bcrypt.compare(candidatePassword, userPassword);
+};
+
+//checking if logged in user changed his password
+userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
+  if (this.passwordChangedAt) {
+    const changedTimestamp = parseInt(
+      this.passwordChngedAt.getTime() / 1000,
+      10
+    );
+
+    console.log(this.passwordChangedAt, JWTTimestamp);
+    return JWTTimestamp < changedTimestamp; // 100 < 200
+  }
+
+  // Falsemeans NOT changed
+  return false;
 };
 
 const User = mongoose.model('User', userSchema); //creating model out of schema
