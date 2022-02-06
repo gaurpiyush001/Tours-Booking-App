@@ -24,7 +24,8 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
     results: tours.length,
     data: {
       tours
-    }
+    },
+    user: req.user //protected route is accessed by this user
   });
 });
 
