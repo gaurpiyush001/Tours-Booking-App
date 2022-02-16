@@ -1,4 +1,4 @@
-const cryto = require('crypto');
+const crypto = require('crypto');
 const mongoose = require('mongoose');
 const validator = require('validator');
 const bcrypt = require('bcryptjs');
@@ -34,7 +34,7 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please Confirm your Password'],
     validate: {
-      // We will create a function and error message, below is a custom validator, which will only work on saving the document
+      // We will create a function and error message, below is a custom validator, which will only work on saving or creating the document
       // below validation will not work on updating a document
       validator: function(el) {
         return el === this.password; // Equating the Password to check
@@ -43,7 +43,7 @@ const userSchema = new mongoose.Schema({
     }
   },
   passwordChangedAt: Date,
-  passwordResetToken: String,
+  passwordResetToken: String /*We need to encrypt this field bcz if hacker gets access to database then he can to change users password*/,
   passwordResetExpires: Date
 });
 
@@ -63,6 +63,13 @@ userSchema.pre('save', async function(next) {
   next();
 });
 
+userSchema.pre('save', function(next) {
+  if (!this.isModified('password') || this.isNew) return next();
+
+  this.passwordChangedAt = Date.now() - 1000; //by subtracting 1 second manually, we will ensure JWT is issued after the password has been changed and the user wil be logged in
+  next();
+});
+
 ///////////---------------------------INSTANCE METHOD, for decrypting the password for verificaation at time of logginIn------------------/////////////////
 //INSTANCE METHOD IS AVAILABLE ON ALL DOCUMENTS
 userSchema.methods.correctPassword = async function(
@@ -72,6 +79,8 @@ userSchema.methods.correctPassword = async function(
   console.log('in the correctPassword instance');
   //this.password is not available in the output, so we pass candidatePassword as a parameter in function
   //just returns true or false
+  //function will decrypt the password saved in database and then compare it
+  console.log(candidatePassword, userPassword);
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
@@ -97,19 +106,20 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
 };
 
 userSchema.methods.createPasswordResetToken = function() {
-  //passwordResetToken should be a random string, but it should be cryptographically strong as
-  //the password hash, so we can use RANDOM BYTES FUNCTION, from built-in CRYPTO MODULE
+  //passwordResetToken should be a random string, but it does'nt need to be cryptographically strong as
+  //the password hash, so we can use RANDOM BYTES FUNCTION , from built-in CRYPTO MODULE
 
-  const resetToken = cryto.randomBytes(32).toString('hex');
+  const resetToken = crypto.randomBytes(32).toString('hex');
+  //resetToken will be send to the user, so its like a reset Password, which the user can use to create a new REAL PASSWORD, and ofcourse ONLY THE USER WILL HAVE ACCESS TO THIS TOKEN
 
-  // this.passwordResetToken = crypto
-  //   .createHash('sha256')
-  //   .update(resetToken)
-  //   .digest('hex');
+  this.passwordResetToken = crypto
+    .createHash('sha256')
+    .update(resetToken)
+    .digest('hex');
 
-  this.passwordResetToken = resetToken;
+  // this.passwordResetToken = resetToken;
 
-  console.log({ resetToken }, this.paswordResetToken);
+  console.log({ resetToken }, this.passwordResetToken);
 
   this.passwordResetExpires = Date.now() + 10 * 60 * 1000;
   return resetToken; //plain text token that we gonna send through Email
