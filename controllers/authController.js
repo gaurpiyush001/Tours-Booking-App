@@ -12,10 +12,21 @@ const signToken = id => {
     { id } /*Payload*/,
     process.env.JWT_SECRET /*secret-Key_32-char-long*/,
     /*Options*/ {
-      expiresIn: `${process.env.JWT_EXPIRES_IN}d`
+      expiresIn: '7h'
     }
   );
+  // console.log(process.env.JWT_EXPIRES_IN);
 };
+
+// const createSendToken = (user, statusCode, res, token) => {
+//   res.status(statusCode).json({
+//     status: 'success',
+//     token,
+//     data: {
+//       user
+//     }
+//   });
+// };
 
 exports.signup = catchAsync(async (req, res, next) => {
   const newUser = await User.create({
@@ -37,9 +48,20 @@ exports.signup = catchAsync(async (req, res, next) => {
     { id: newUser._id } /*Payload*/,
     process.env.JWT_SECRET /*secret-Key_32-char-long*/,
     /*Options*/ {
-      expiresIn: `${process.env.JWT_EXPIRES_IN}d`
+      expiresIn: process.env.JWT_EXPIRES_IN
     }
   );
+
+  res.cookie('jwt', token, {
+    //by this we will make it so, that browser or the client in general will delete the cookie after it has expired
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    //secure: true /*Cookie will only be send to an encrypted Connection means https connection only in production it will work*/,
+    httpOnly: true /*by this we make sure that our cookie cannot be modified or accessed by the browser*/
+  });
+
+  newUser.password = undefined; //by this it will not show in output,but will go to db
   // token headers are craeted automatically
   res.status(201).json({
     //We will send the created user to client
@@ -78,6 +100,16 @@ exports.login = catchAsync(async (req, res, next) => {
 
   // 3.) If everything ok, send unique token to client
   const token = signToken(user._id);
+  console.log(process.env.JWT_EXPIRES_IN);
+
+  res.cookie('jwt', token, {
+    //by this we will make it so, that browser or the client in general will delete the cookie after it has expired
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    //secure: true /*Cookie will only be send to an encrypted Connection means https connection*/,
+    httpOnly: true /*by this we make sure that our cookie cannot be modified or accessed by the browser*/
+  });
 
   res.status(200).json({
     status: 'Success',
@@ -234,6 +266,14 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
   //4.) Log the user In, send JWT
   const token = signToken(user._id);
 
+  res.cookie('jwt', token, {
+    //by this we will make it so, that browser or the client in general will delete the cookie after it has expired
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    //secure: true /*Cookie will only be send to an encrypted Connection means https connection*/,
+    httpOnly: true /*by this we make sure that our cookie cannot be modified or accessed by the browser*/
+  });
   res.status(200).json({
     status: 'Success',
     token
@@ -273,6 +313,15 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
 
   // 4) Log user In, send JWT(with thw new password that was updated)
   const token = signToken(user._id);
+
+  res.cookie('jwt', token, {
+    //by this we will make it so, that browser or the client in general will delete the cookie after it has expired
+    expires: new Date(
+      Date.now() + process.env.JWT_COOKIE_EXPIRES_IN * 24 * 60 * 60 * 1000
+    ),
+    //secure: true /*Cookie will only be send to an encrypted Connection means https connection*/,
+    httpOnly: true /*by this we make sure that our cookie cannot be modified or accessed by the browser*/
+  });
 
   res.status(200).json({
     status: 'Success',
