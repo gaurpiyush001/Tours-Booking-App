@@ -1,5 +1,10 @@
 const express = require('express');
 const morgan = require('morgan');
+const rateLimit = require('express-rate-limit'); //this package is for preventing DOS and Brute force attack
+const helmet = require('helmet'); //this package is for important security http headers, to set these header we will use middleware function used in helmet
+const mongoSanitize = require('express-mongo-sanitize');
+const xss = require('xss-clean');
+const hpp = require('hpp');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
@@ -8,14 +13,59 @@ const userRouter = require('./routes/userRoutes');
 
 const app = express();
 
-// 1) MIDDLEWARES
+// 1) GLOBAL MIDDLEWARES
+
+//Setting Securtiy http headers
+//In app.use we always need a function not a function call
+app.use(helmet() /*this will return a function*/);
+
+//Development logging
 if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-app.use(express.json());
+//this below limiter function is an middleware function, limiting request from same API
+const limiter = rateLimit({
+  /*Here we will specify how much request per IP are we goin to allowed*/
+  max: 100, //100 request for same IP
+  windowMs: 60 * 60 * 1000, //In one hour
+  message: 'Too many request fom this IP, please try again in an hour' //If limits exceeds then this error message
+});
+app.use('/api' /*limit acces to our api starting with this string*/, limiter);
+
+// Body parser, reading data from body into req.body
+// by this, We can actually limit the amount of data that comes in the body
+app.use(
+  express.json({
+    limit: '10kb' /*body larger then 10KiloByte will not be accepted*/
+  })
+);
+
+//-----Data Sanitization against NoSQL Query Injection
+app.use(mongoSanitize()); //This will clean any user input from malicious query string
+
+//-----Data sanitization against XSS
+app.use(xss()); //This will clean any user input from malicious code
+
+// Prevent parameter pollution....this prevent the parameter polltion in sort parameters
+app.use(
+  hpp({
+    whitelist: [
+      /*Whitelist is simply an array of properties for which allow duplicates in query String*/
+      'duration',
+      'ratingsQuantity',
+      'ratingsAverage',
+      'maxGroupSize',
+      'difficulty',
+      'price'
+    ]
+  })
+);
+
+//Serving Static Files
 app.use(express.static(`${__dirname}/public`));
 
+//Tets Middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
   next();
