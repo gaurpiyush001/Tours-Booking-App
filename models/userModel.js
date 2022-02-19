@@ -44,7 +44,12 @@ const userSchema = new mongoose.Schema({
   },
   passwordChangedAt: Date,
   passwordResetToken: String /*We need to encrypt this field bcz if hacker gets access to database then he can to change users password*/,
-  passwordResetExpires: Date
+  passwordResetExpires: Date,
+  active: {
+    type: Boolean,
+    default: true,
+    select: false
+  }
 });
 
 // For doing Password Encryption Password, we will use pre save hook(), i.e document middleware
@@ -67,6 +72,13 @@ userSchema.pre('save', function(next) {
   if (!this.isModified('password') || this.isNew) return next();
 
   this.passwordChangedAt = Date.now() - 1000; //by subtracting 1 second manually, we will ensure JWT is issued after the password has been changed and the user wil be logged in
+  next();
+});
+
+//pre-find hook, now this below middleware will run for each find query
+userSchema.pre(/^find/, function(next) {
+  //this points to the current query
+  this.find({ active: { $ne: false } });
   next();
 });
 
