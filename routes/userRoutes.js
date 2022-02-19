@@ -18,6 +18,8 @@ router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
 router.patch('/updateMe', authController.protect, userController.updateMe);
+//we will not actually delete a user from database, but as long as a user no longer accessible anywhere then its still okay to use this delete http method here
+router.delete('/deleteMe', authController.protect, userController.deleteMe);
 
 router
   .route('/')
