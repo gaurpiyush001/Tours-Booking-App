@@ -1,14 +1,14 @@
 {
-  "name": "natours",
+  "name": "tours_booking_app",
   "version": "1.0.0",
-  "description": "Learning node, express and mongoDB",
+  "description": "Backend Development",
   "main": "app.js",
   "scripts": {
     "start": "nodemon server.js",
     "start:prod": "NODE_ENV=production nodemon server.js",
     "debug": "ndb server.js"
   },
-  "author": "Jonas Schmedtmann",
+  "author": "Piyush Gaur",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",
