@@ -10,6 +10,7 @@ const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
+const reviewRouter = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -40,6 +41,11 @@ app.use(
     limit: '10kb' /*body larger then 10KiloByte will not be accepted*/
   })
 );
+
+/*{
+  "email": { "$gt": ""},
+  "password": "browny06"
+}*/
 
 //-----Data Sanitization against NoSQL Query Injection
 app.use(mongoSanitize()); //This will clean any user input from malicious query string
@@ -72,8 +78,13 @@ app.use((req, res, next) => {
 });
 
 // 3) ROUTES
-app.use('/api/v1/tours', tourRouter);
+//Here we are performing mounting of routes
+app.use(
+  '/api/v1/tours',
+  tourRouter /*this will now act as middleware function, and will be called whenever there is a request to this route */
+);
 app.use('/api/v1/users', userRouter);
+app.use('/api/v1/reviews', reviewRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
