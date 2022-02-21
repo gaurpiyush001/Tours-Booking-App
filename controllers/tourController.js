@@ -30,8 +30,13 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
 });
 
 exports.getTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findById(req.params.id);
+  //const tour = await Tour.findById(req.params.id).populate({
+  //  path: 'guides',/*attribute which we want to populate from the referenced collection*/
+  //  select: '-__v -passwordChangedAt'
+  //});
   // Tour.findOne({ _id: req.params.id })
+
+  const tour = await Tour.findById(req.params.id);
 
   if (!tour) {
     return next(new AppError('No tour found with that ID', 404));
@@ -57,6 +62,7 @@ exports.createTour = catchAsync(async (req, res, next) => {
 });
 
 exports.updateTour = catchAsync(async (req, res, next) => {
+  //findByIdAndUpdate allows all query middleware to run, But is stops all the document middleware
   const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
     new: true,
     runValidators: true
