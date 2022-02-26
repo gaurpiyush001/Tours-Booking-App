@@ -17,10 +17,19 @@ router.patch(
 router.post('/forgotPassword', authController.forgotPassword);
 router.patch('/resetPassword/:token', authController.resetPassword);
 
-router.patch('/updateMe', authController.protect, userController.updateMe);
-//we will not actually delete a user from database, but as long as a user no longer accessible anywhere then its still okay to use this delete http method here
-router.delete('/deleteMe', authController.protect, userController.deleteMe);
+router.use(authController.protect); //because middleware runs in sequence, all below routes are now protected
 
+router.get(
+  '/me',
+  //authController.protect,
+  /*putting user id in params*/ userController.getMe,
+  userController.getUser
+);
+router.patch('/updateMe', /*authController.protect,*/ userController.updateMe);
+//we will not actually delete a user from database, but as long as a user no longer accessible anywhere then its still okay to use this delete http method here
+router.delete('/deleteMe', /*authController.protect,*/ userController.deleteMe);
+
+router.use(authController.restrictTo('admin')); //now below routes can only be accessed by admin
 router
   .route('/')
   .get(userController.getAllUsers)
@@ -30,6 +39,10 @@ router
   .route('/:id')
   .get(userController.getUser)
   .patch(userController.updateUser)
-  .delete(userController.deleteUser);
+  .delete(
+    /*authController.protect,*/
+    /*authController.restrictTo('admin'),*/
+    userController.deleteUser
+  );
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
+const factory = require('./handlerFactory');
 
 const filterObj = (obj, ...allowedFields) => {
   const newObj = {};
@@ -60,24 +61,17 @@ exports.updateMe = catchAsync(async (req, res, next) => {
   });
 });
 
-exports.getUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined!'
-  });
-};
+exports.getUser = factory.getOne(User);
+
 exports.createUser = (req, res) => {
   res.status(500).json({
     status: 'error',
-    message: 'This route is not yet defined!'
+    message: 'This route is not yet defined! Please use sign Up insteadf'
   });
 };
-exports.updateUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined!'
-  });
-};
+
+/// Do NOT UPDATE passwords with this!!!
+exports.updateUser = factory.updateOne(User); //Only for administrators
 
 //When a user decides to delete his account, we actually do not delete that document from database, But we just set that account to inactive, So that user at some point of time reactivate his account
 exports.deleteMe = catchAsync(async (req, res) => {
@@ -92,9 +86,15 @@ exports.deleteMe = catchAsync(async (req, res) => {
   });
 });
 
-exports.deleteUser = (req, res) => {
-  res.status(500).json({
-    status: 'error',
-    message: 'This route is not yet defined!'
-  });
+// exports.deleteUser = (req, res) => {
+//   res.status(500).json({
+//     status: 'error',
+//     message: 'This route is not yet defined!'
+//   });
+// }; After Factory Function below
+exports.deleteUser = factory.deleteOne(User); //This route is specified for Administrator only, to delete the user
+
+exports.getMe = (req, res, next) => {
+  req.params.id = req.user.id;
+  next();
 };
