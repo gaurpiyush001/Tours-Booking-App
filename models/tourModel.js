@@ -37,6 +37,7 @@ const tourSchema = new mongoose.Schema(
       min: [1, 'Rating must be above 1.0'],
       max: [5, 'Rating must be below 5.0']
     },
+    //It is very effective technique to store the related dataSet in the main dataset, So that we are  
     ratingsQuantity: {
       type: Number,
       default: 0
@@ -136,8 +137,23 @@ const tourSchema = new mongoose.Schema(
   }
 );
 
+//////////////////---------------------INDEXING in MONGODB--------------------////////////////////////
+//Single Field Index
+//tourSchema.index({ price: 1 }); //this means we are sorting the price in ascending order in ordered list somewhere outside the collection
+//Compound Field Index, when we query with more than one parameter
+tourSchema.index({ price: 1, ratingAverage: -1 }); //This compound index will also work if we queries just one query/parameter in the url string
+tourSchema.index({ slug: 1 });
+
 tourSchema.virtual('durationWeeks').get(function() {
   return this.duration / 7;
+});
+
+/////////////////--------------VIRTUAL POPULATE----------------------------/////////////
+tourSchema.virtual('reviews', {
+  ref: 'Review',
+  //Now we need to specify the name of the fields in order to connect the two datasets/Collections
+  foreignField: 'tour',
+  localField: '_id'
 });
 
 // DOCUMENT MIDDLEWARE: runs before .save() and .create()

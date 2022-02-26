@@ -1,7 +1,8 @@
 const Tour = require('./../models/tourModel');
-const APIFeatures = require('./../utils/apiFeatures');
+// const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
-const AppError = require('./../utils/appError');
+// const AppError = require('./../utils/appError');
+const factory = require('./handlerFactory');
 
 exports.aliasTopTours = (req, res, next) => {
   req.query.limit = '5';
@@ -10,7 +11,8 @@ exports.aliasTopTours = (req, res, next) => {
   next();
 };
 
-exports.getAllTours = catchAsync(async (req, res, next) => {
+exports.getAllTours = factory.getAll(Tour);
+/*catchAsync(async (req, res, next) => {
   const features = new APIFeatures(Tour.find(), req.query)
     .filter()
     .sort()
@@ -28,15 +30,22 @@ exports.getAllTours = catchAsync(async (req, res, next) => {
     user: req.user //protected route is accessed by this user
   });
 });
+*/
 
-exports.getTour = catchAsync(async (req, res, next) => {
+exports.getTour = factory.getOne(Tour, {
+  path: 'reviews'
+});
+
+/*
+catchAsync(async (req, res, next) => {
   //const tour = await Tour.findById(req.params.id).populate({
-  //  path: 'guides',/*attribute which we want to populate from the referenced collection*/
+  //  path: 'guides',
+  //attribute which we want to populate from the referenced collection
   //  select: '-__v -passwordChangedAt'
   //});
   // Tour.findOne({ _id: req.params.id })
 
-  const tour = await Tour.findById(req.params.id);
+  const tour = await Tour.findById(req.params.id).populate('reviews');
 
   if (!tour) {
     return next(new AppError('No tour found with that ID', 404));
@@ -49,18 +58,11 @@ exports.getTour = catchAsync(async (req, res, next) => {
     }
   });
 });
+*/
 
-exports.createTour = catchAsync(async (req, res, next) => {
-  const newTour = await Tour.create(req.body);
+exports.createTour = factory.createOne(Tour);
 
-  res.status(201).json({
-    status: 'success',
-    data: {
-      tour: newTour
-    }
-  });
-});
-
+/*
 exports.updateTour = catchAsync(async (req, res, next) => {
   //findByIdAndUpdate allows all query middleware to run, But is stops all the document middleware
   const tour = await Tour.findByIdAndUpdate(req.params.id, req.body, {
@@ -79,19 +81,22 @@ exports.updateTour = catchAsync(async (req, res, next) => {
     }
   });
 });
+*/
+exports.updateTour = factory.updateOne(Tour);
 
-exports.deleteTour = catchAsync(async (req, res, next) => {
-  const tour = await Tour.findByIdAndDelete(req.params.id);
+// exports.deleteTour = catchAsync(async (req, res, next) => {
+//   const tour = await Tour.findByIdAndDelete(req.params.id);
 
-  if (!tour) {
-    return next(new AppError('No tour found with that ID', 404));
-  }
+//   if (!tour) {
+//     return next(new AppError('No tour found with that ID', 404));
+//   }
 
-  res.status(204).json({
-    status: 'success',
-    data: null
-  });
-});
+//   res.status(204).json({
+//     status: 'success',
+//     data: null
+//   });
+// });
+exports.deleteTour = factory.deleteOne(Tour);
 
 exports.getTourStats = catchAsync(async (req, res, next) => {
   const stats = await Tour.aggregate([
