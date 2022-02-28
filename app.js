@@ -1,3 +1,4 @@
+const path = require('path'); //path is built-in core module, used to manipulate path-names
 const express = require('express');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit'); //this package is for preventing DOS and Brute force attack
@@ -5,16 +6,30 @@ const helmet = require('helmet'); //this package is for important security http 
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+//In order to get access to the cookies, that are in our request, we need to install a middleware
+const cookieParser = require('cookie-parser');
 
 const AppError = require('./utils/appError');
 const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const viewRouter = require('./routes/viewRoutes');
 
 const app = express();
 
+///////---setting up tepmplate ENGINE WITH express
+//How do we build or render these websites, well we use TEMPLATE ENGINES, which will allow us to create template an then easily fill up that template with our data, AND one such TEMPLATE ENGINE is PUG which we will use(others are handlebars, EJS)
+//below we DEFINED OUR VIEW ENGINE
+app.set('view engine', 'pug'); //Express automatically supports some engines, we don't need to require pug
+//NOW below we define, where these views(pug-templates) are located in file system
+app.set('views', path.join(__dirname, 'views'));
+
 // 1) GLOBAL MIDDLEWARES
+
+//Serving Static Files
+//app.use(express.static(`${__dirname}/public`));
+app.use(express.static(path.join(__dirname, 'public'))); //all the static assets are served by this route
 
 //Setting Securtiy http headers
 //In app.use we always need a function not a function call
@@ -41,6 +56,7 @@ app.use(
     limit: '10kb' /*body larger then 10KiloByte will not be accepted*/
   })
 );
+app.use(cookieParser()); //this middleware parses the data from cookie
 
 /*{
   "email": { "$gt": ""},
@@ -68,17 +84,16 @@ app.use(
   })
 );
 
-//Serving Static Files
-app.use(express.static(`${__dirname}/public`));
-
 //Tets Middleware
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
+  console.log(req.cookies);
   next();
 });
 
 // 3) ROUTES
 //Here we are performing mounting of routes
+app.use('/', viewRouter);
 app.use(
   '/api/v1/tours',
   tourRouter /*this will now act as middleware function, and will be called whenever there is a request to this route */
