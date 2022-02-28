@@ -3,7 +3,7 @@ const reviewController = require('./../controllers/reviewController');
 const authController = require('./../controllers/authController');
 
 //---------------------------------MERGE-PARAMS(express advance feature)--------------------------//
-const router = express.Router({ mergeParams: true }); //we need to do this because in express by default, each router have access to their specific routes
+const router = express.Router({ mergeParams: true }); //We need to do this because in express by default, each router have access to their specific routes
 
 router.use(authController.protect);
 // POST /tour/{tour_id}/reviews
