@@ -112,10 +112,19 @@ exports.login = catchAsync(async (req, res, next) => {
   });
 
   res.status(200).json({
+    data: user,
     status: 'Success',
     token
   });
 });
+
+exports.logout = (req, res) => {
+  res.cookie('jwt', 'loggedout', {
+    expires: new Date(Date.now() + 10 * 1000),
+    httpOnly: true
+  });
+  res.status(200).json({ status: 'success' });
+};
 
 exports.protect = catchAsync(async (req, res, next) => {
   // 1) Getting Token from user and check if its there in request body
@@ -128,6 +137,9 @@ exports.protect = catchAsync(async (req, res, next) => {
   ) {
     console.log('yes token haii!!');
     token = req.headers.authorization.split(' ')[1];
+  } else if (req.cookies.jwt) {
+    //now we are also able to authenticate users based on tokens send by a coookie and not only the authorization header
+    token = req.cookies.jwt;
   }
 
   console.log(token);
@@ -171,6 +183,45 @@ exports.protect = catchAsync(async (req, res, next) => {
   // console.log(req);
   next();
 });
+
+//This middleware is reponsible for checking If user logged in or NOT?? and accordingly updating the templates from backend, this middeware function is going to be running on each and every request
+exports.isLoggedIn = async (req, res, next) => {
+  try {
+    if (req.cookies.jwt) {
+      //token will be sent through the cookie not from header
+      //now we are also able to authenticate users based on tokens send by a coookie
+      // 1) verifies the token getting from cookie with the request
+      const decoded = await promisify(jwt.verify)(
+        req.cookies.jwt /*for accessing header & payload*/,
+        process.env.JWT_SECRET /*Inorder to create test signature*/
+      );
+
+      console.log(decoded); //contains thee objects => {id, iat, expireAt}
+
+      // 3) If User still exist
+      const freshUser = await User.findById(decoded.id);
+      if (!freshUser) {
+        return next();
+      }
+
+      // 4) Check If user changed password after the JWT was issued
+      //implemented in user model by Instance Method
+      if (freshUser.changedPasswordAfter(decoded.iat)) {
+        return next();
+      }
+
+      //There is a loggedIn user, so make user accessible to our templates
+      //we can put res.locals and then put any variable in there, and those variables will now be accessible to our templates
+      //each and evry template has access to res.locals
+      res.locals.user = freshUser;
+      // console.log(req);
+      return next();
+    }
+  } catch (err) {
+    return next();
+  }
+  next();
+};
 
 // Example of implementing of passing arguments to a Middleware Function
 // Generally we are not able to pass arguments to middleware function, but we can do so by a wrapper function
