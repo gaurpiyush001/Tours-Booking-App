@@ -31,13 +31,15 @@ const tourSchema = new mongoose.Schema(
         message: 'Difficulty is either: easy, medium, difficult'
       }
     },
+    //It is very effective technique to store the small related dataSet info in the main dataset, This prevents constant queries of related dataset
+    //now we'll calculate the average rating and also the number of ratings of a tour, each time when a new review is added to that tour, or when review is updated or deleted
     ratingsAverage: {
       type: Number,
       default: 4.5,
       min: [1, 'Rating must be above 1.0'],
-      max: [5, 'Rating must be below 5.0']
+      max: [5, 'Rating must be below 5.0'],
+      set: val => Math.round(val * 10) / 10 //This function will run each time when a new value is set
     },
-    //It is very effective technique to store the related dataSet in the main dataset, So that we are  
     ratingsQuantity: {
       type: Number,
       default: 0
@@ -183,7 +185,7 @@ tourSchema.pre('save', async function(next) {
 //   next();
 // });
 
-// QUERY MIDDLEWARE
+// QUERY MIDDLEWARE---->here "this" refers to current Query
 // tourSchema.pre('find', function(next) {
 tourSchema.pre(/^find/, function(next) {
   this.find({ secretTour: { $ne: true } });
