@@ -122,7 +122,7 @@ exports.getAll = Model =>
       .sort()
       .limitFields()
       .paginate();
-    const doc = await features.query.explain();
+    const doc = await features.query;
     //MongoDb indexes are used to improve the read performance query by examining only some ste of documents ona query
 
     // SEND RESPONSE
