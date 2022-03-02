@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const User = require('./../models/userModel');
 const catchAsync = require('./../utils/catchAsync');
 const AppError = require('./../utils/appError');
-const sendEmail = require('./../utils/email');
+const Email = require('./../utils/email');
 
 const signToken = id => {
   return jwt.sign(
@@ -41,6 +41,10 @@ exports.signup = catchAsync(async (req, res, next) => {
   }); //Creating a New Document Based on the Models
   // By sending this selected data in signUp, we prevented the possiblity of manipulating the admin role
 
+  const url = `${req.protocol}://${req.get('host')}/me`;
+  await new Email(newUser, url).sendWelcome();
+  console.log('sending welcom messge in productino');
+
   // ------------------------IMPLEMENTING AUTHENTICATION-----------------------------//
 
   // 1.) Craeting a unique JWT, during signup
@@ -75,6 +79,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 
 exports.login = catchAsync(async (req, res, next) => {
   const { email, password } = req.body;
+  // console.log(email, password, `In login`);
 
   // 1.) Check or Verify requested Email and Password exist or not in user request body data
   if (!email || !password) {
@@ -88,19 +93,20 @@ exports.login = catchAsync(async (req, res, next) => {
     '+password'
   ); /*explicitly slecting password*/
 
-  console.log(user, 'user');
+  // console.log(user, 'user');
 
   //Comparing decrypted password of database with that given by the user in request(Done in Modal)
   // if(user.password === password)
   //const correct = await user.correctPassword(password, user.password);
 
   if (!user || !(await user.correctPassword(password, user.password))) {
+    console.log('I spoasswod wrong');
     return next(new AppError('Incorrect email or password', 401));
   }
 
   // 3.) If everything ok, send unique token to client
   const token = signToken(user._id);
-  console.log(process.env.JWT_EXPIRES_IN);
+  // console.log(process.env.JWT_EXPIRES_IN);
 
   res.cookie('jwt', token, {
     //by this we will make it so, that browser or the client in general will delete the cookie after it has expired
@@ -135,14 +141,14 @@ exports.protect = catchAsync(async (req, res, next) => {
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
-    console.log('yes token haii!!');
+    // console.log('yes token haii!!');
     token = req.headers.authorization.split(' ')[1];
   } else if (req.cookies.jwt) {
     //now we are also able to authenticate users based on tokens send by a coookie and not only the authorization header
     token = req.cookies.jwt;
   }
 
-  console.log(token);
+  // console.log(token);
 
   if (!token) {
     return next(
@@ -160,7 +166,7 @@ exports.protect = catchAsync(async (req, res, next) => {
     token /*for accessing header & payload*/,
     process.env.JWT_SECRET /*Inorder to create test signature*/
   );
-  console.log(decoded); //contains thee objects => {id, iat, expireAt}
+  // console.log(decoded); //contains thee objects => {id, iat, expireAt}
 
   // 3) If User still exist
   const freshUser = await User.findById(decoded.id);
@@ -180,6 +186,7 @@ exports.protect = catchAsync(async (req, res, next) => {
 
   //GRANT ACCES TO PROTECTED ROUTE
   req.user = freshUser;
+  res.locals.user = freshUser;
   // console.log(req);
   next();
 });
@@ -196,7 +203,7 @@ exports.isLoggedIn = async (req, res, next) => {
         process.env.JWT_SECRET /*Inorder to create test signature*/
       );
 
-      console.log(decoded); //contains thee objects => {id, iat, expireAt}
+      //console.log(decoded); //contains thee objects => {id, iat, expireAt}
 
       // 3) If User still exist
       const freshUser = await User.findById(decoded.id);
@@ -251,7 +258,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
   //2.) Generate the random token not a Json web Token(will do in Instance Methods in model)
   const resetToken = user.createPasswordResetToken();
   console.log(resetToken, 'In authController after executing InstanceMethod');
-  await user.save(
+  const newUser = await user.save(
     {
       validateBeforeSave: false
     } /*this option will deactivaet all the validators that we set in Our Schema*/
@@ -262,23 +269,25 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
     'host'
   )}/api/v1/users/resetPassword/${resetToken}`;
 
-  const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you did'nt forget your password, please ignore this e-mail`;
+  //const message = `Forgot your password? Submit a PATCH request with your new password and passwordConfirm to: ${resetURL}.\nIf you did'nt forget your password, please ignore this e-mail`;
 
   try {
-    await sendEmail({
-      email: user.email,
-      subject: 'Your PASSWORD RESET TOKEN (valid for 10min)',
-      message
-    });
+    // await sendEmail({
+    //   email: user.email,
+    //   subject: 'Your PASSWORD RESET TOKEN (valid for 10min)',
+    //   message
+    // });
+    await new Email(newUser, resetURL).sendPasswordReset();
 
     res.status(200).json({
       status: 'success',
       message: 'Token sent to email '
     });
   } catch (err) {
+    console.log(err);
     user.passwordResetToken = undefined;
     user.passwordResetExpires = undefined;
-    await user.save({ validationBeforeSave: false });
+    await user.save({ validateBeforeSave: false });
 
     return next(
       new AppError('There was an error sending the email. Try Again later!'),
@@ -341,11 +350,11 @@ exports.updatePassword = catchAsync(async (req, res, next) => {
   // const user = await User.findOne({ email: req.body.email }).select(
   //   '+password'
   // );
-  console.log(user, 'In updatePassword');
+  //console.log(user, 'In updatePassword');
 
   // 2) Check if Posted curent password is correct
   const previousPassword = req.body.prevPassword;
-  console.log(req.body.prevPassword);
+  //console.log(req.body.prevPassword);
   if (!user || !(await user.correctPassword(previousPassword, user.password))) {
     // console.log('In first block');
     return next(
