@@ -14,6 +14,7 @@ const globalErrorHandler = require('./controllers/errorController');
 const tourRouter = require('./routes/tourRoutes');
 const userRouter = require('./routes/userRoutes');
 const reviewRouter = require('./routes/reviewRoutes');
+const bookingRouter = require('./routes/bookingRoutes');
 const viewRouter = require('./routes/viewRoutes');
 
 const app = express();
@@ -56,6 +57,13 @@ app.use(
     limit: '10kb' /*body larger then 10KiloByte will not be accepted*/
   })
 );
+app.use(
+  express.urlencoded({
+    //this middleware for getting the html form submittion values form request body, which was sent in urlEncoded form
+    extended: true,
+    limit: '10kb'
+  })
+);
 app.use(cookieParser()); //this middleware parses the data from cookie
 
 /*{
@@ -85,9 +93,17 @@ app.use(
 );
 
 //Tets Middleware
+// app.use((req, res, next) => {
+//   res.setHeader(
+//     'Content-Security-Policy',
+//     "default-src 'unsafe-inline'; img-src 'self'; script-src-elem https://js.stripe.com/v3/ http://*/js/bundle.js; style-src-elem 'http://*/css/style.css"
+//   );
+//   next();
+// });
+
 app.use((req, res, next) => {
   req.requestTime = new Date().toISOString();
-  console.log(req.cookies);
+  // console.log(req.cookies);
   next();
 });
 
@@ -100,6 +116,7 @@ app.use(
 );
 app.use('/api/v1/users', userRouter);
 app.use('/api/v1/reviews', reviewRouter);
+app.use('/api/v1/bookings', bookingRouter);
 
 app.all('*', (req, res, next) => {
   next(new AppError(`Can't find ${req.originalUrl} on this server!`, 404));
