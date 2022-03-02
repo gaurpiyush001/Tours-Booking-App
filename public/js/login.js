@@ -23,6 +23,7 @@ export const login = async (email, password) => {
         }
         console.log(res);
     } catch(err) {
+        console.log('dkfbdjfd', err.response.data);
         showAlert('error', err.response.data.message);
         // console.log(err.response.data);
     }
@@ -41,7 +42,10 @@ export const logout = async () => {
         // console.log(res);
         if(res.data.status === 'success'){
             showAlert('success', 'Logged Out')
-            location.reload(true);//this will force a reload from server not from browser
+            //location.reload(true);//this will force a reload from server not from browser
+            window.setTimeout(() => {
+                location.assign('/');
+            }, 1500);
         }
     } catch (err) {
         showAlert('error', 'Error logging out! try again.');
