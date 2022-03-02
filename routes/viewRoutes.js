@@ -20,14 +20,22 @@ router.get('/', (req, res) => {
 */
 
 //we want this middleware to apply before every simgle request for our template
-router.use(authController.isLoggedIn);
+// router.use(authController.isLoggedIn);
 
-router.get('/', viewsController.getOverview);
+router.get('/', authController.isLoggedIn, viewsController.getOverview);
 
-router.get('/tour/:slug', viewsController.getTour);
+router.get('/tour/:slug', authController.isLoggedIn, viewsController.getTour);
 // router.get('/tour', viewsController.getTour);
 
 //login route
-router.get('/login', viewsController.getloginForm);
+router.get('/login', authController.isLoggedIn, viewsController.getloginForm);
+
+router.get('/me', authController.protect, viewsController.getAccount);
+
+// router.post(
+//   '/submit-user-data',
+//   authController.protect,
+//   viewsController.updateUserData
+// );
 
 module.exports = router;
