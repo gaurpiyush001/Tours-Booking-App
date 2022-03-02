@@ -18,7 +18,10 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     validate: [validator.isEmail, 'Please provide a valid email']
   },
-  photo: String,
+  photo: {
+    type: String,
+    default: 'default.jpg'
+  },
   role: {
     type: String,
     enum: ['user', 'guide', 'lead-guide', 'admin'],
@@ -88,11 +91,11 @@ userSchema.methods.correctPassword = async function(
   candidatePassword,
   userPassword
 ) {
-  console.log('in the correctPassword instance');
+  // console.log('in the correctPassword instance');
   //this.password is not available in the output, so we pass candidatePassword as a parameter in function
   //just returns true or false
   //function will decrypt the password saved in database and then compare it
-  console.log(candidatePassword, userPassword);
+  // console.log(candidatePassword, userPassword);
   return await bcrypt.compare(candidatePassword, userPassword);
 };
 
@@ -104,16 +107,16 @@ userSchema.methods.changedPasswordAfter = function(JWTTimestamp) {
       10
     );
     // console.log(this.passwordChangedAt.get)
-    console.log(
-      this.passwordChangedAt,
-      JWTTimestamp,
-      'checking password changed timing'
-    );
+    // console.log(
+    //   this.passwordChangedAt,
+    //   JWTTimestamp,
+    //   'checking password changed timing'
+    // );
     return JWTTimestamp < changedTimestamp; // 100 < 200
   }
 
   // Falsemeans NOT changed
-  console.log('passwordChangedAt property not exist');
+  // console.log('passwordChangedAt property not exist');
   return false;
 };
 
