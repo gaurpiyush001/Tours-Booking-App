@@ -1,8 +1,82 @@
+const multer = require('multer');
+const sharp = require('sharp');
 const Tour = require('./../models/tourModel');
-// const APIFeatures = require('./../utils/apiFeatures');
 const catchAsync = require('./../utils/catchAsync');
-// const AppError = require('./../utils/appError');
+const AppError = require('./../utils/appError');
 const factory = require('./handlerFactory');
+
+const multerStorage = multer.memoryStorage(); //This way the image is stored as a buffer in memory, and not in disk, saving in this style would be helpfull in Image Processing
+
+//now lets create a multer filter => goal of this function is to check if the uploaed file is image or Not
+const multerFilter = (req, file, cb) => {
+  //(thsi can be used as function to check all kinds of file that we want to upload and accordingly send the error)
+  if (file.mimetype.startsWith('image')) {
+    cb(null, true);
+  } else {
+    cb(
+      new AppError(
+        'Not an Image! Please uplaod an image.',
+        400 /*Bad request*/
+      ),
+      false
+    );
+  }
+};
+
+//If we call multer function just without any option then the images are jsut stored in the memory and are not saved in disk
+//Now we can use this upload as a middleware in our req/res cycle to upload images
+const upload = multer({
+  storage: multerStorage,
+  fileFilter: multerFilter
+});
+
+//Uploading multiple images at a time
+exports.uploadTourImages = upload.fields([
+  {
+    name: 'imageCover', //this is same as field nae in databse
+    maxCount: 1
+  },
+  {
+    name: 'images',
+    maxCount: 3
+  }
+]);
+
+//upload.array('images', 5);--> this will produce req.files
+
+exports.resizeTourImages = catchAsync(async (req, res, next) => {
+  // console.log(req.files);
+
+  if (!req.files.imageCover || !req.files.images) return next();
+
+  // 1) Cover Images processing
+
+  req.body.imageCover = `tour-${req.params.id}-${Date.now()}-cover.jpeg`;
+  await sharp(req.files.imageCover[0].buffer)
+    .resize(2000, 1333) //resizing the image to given dimension
+    .toFormat('jpeg') //converting it to jpeg
+    .jpeg({ quality: 90 }) //reducing the quality of image, so as to counter high resolution images
+    .toFile(`public/img/tours/${req.body.imageCover}`); //saving images to disk
+
+  // 2) Images processing
+  req.body.images = [];
+
+  await Promise.all(
+    req.files.images.map(async (file, i) => {
+      const filename = `tour-${req.params.id}-${Date.now()}-${i + 1}.jpeg`;
+      await sharp(file.buffer)
+        .resize(2000, 1333) //resizing the image to given dimension
+        .toFormat('jpeg') //converting it to jpeg
+        .jpeg({ quality: 90 }) //reducing the quality of image, so as to counter high resolution images
+        .toFile(`public/img/tours/${filename}`); //saving images to disk
+
+      req.body.images.push(filename);
+    })
+  );
+
+  console.log(req.body);
+  next();
+});
 
 exports.aliasTopTours = (req, res, next) => {
   req.query.limit = '5';
